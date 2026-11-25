@@ -2266,10 +2266,9 @@ impl XBuilder {
                     continue;
                 }
                 let s = self.faces[fi].surf.clone();
-                // (A closed spline surface too: a tube swept along a spline, bounded by its
-                // two end circles.)
-                let per = periods(&s);
-                if per.pu.is_none() && per.pv.is_none() {
+                // Not a closed spline surface: its p-curves run past its range and its seam's
+                // ends miss their vertices (NIST's nist_ctc_02_asme1_ap203.stp).
+                if !s.u_periodic() && !s.v_periodic() {
                     continue;
                 }
                 let mut wrapping = Vec::new();
