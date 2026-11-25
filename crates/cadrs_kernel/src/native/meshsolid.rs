@@ -300,6 +300,7 @@ pub fn mesh_solid(triangles: &[[P3; 3]], tol: f64) -> Result<Body, String> {
             Body::reverse_face(f);
         }
     }
+    body.fit_tolerances(tol);
     Ok(body)
 }
 
@@ -615,6 +616,30 @@ mod tests {
                 < 1e-9
         );
         assert!(mesh_solid(&tris[..20], 1e-6).is_err());
+    }
+
+    /// A side whose triangles are a few µm out of plane (a tessellated STEP part's, NIST's
+    /// nist_ftc_08_asme1_ap242-e1-tg.stp): one face, its plane fitted through its loop, so a
+    /// corner lies off it. The tolerances take that gap, so the body checks clean.
+    #[test]
+    fn a_side_slightly_out_of_plane_is_one_face_within_its_tolerances() {
+        let raised = P3::new(10.0, 10.0, 10.0 + 2e-5);
+        let tris: Vec<[P3; 3]> = cube(P3::origin(), 10.0)
+            .into_iter()
+            .map(|t| {
+                t.map(|p| {
+                    if p == P3::new(10.0, 10.0, 10.0) {
+                        raised
+                    } else {
+                        p
+                    }
+                })
+            })
+            .collect();
+        let b = mesh_solid(&tris, 1e-4).unwrap();
+        assert_eq!(b.faces.len(), 6);
+        assert!(b.check().is_empty(), "{:?}", b.check());
+        assert!(b.edges.iter().any(|e| e.tol > tol::POINT));
     }
 
     /// A cube's twelve outward triangles, of side `s` from corner `o`.
